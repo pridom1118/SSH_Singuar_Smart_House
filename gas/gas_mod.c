@@ -9,6 +9,8 @@
 #include <linux/fcntl.h>
 #include <linux/spi/spi.h>
 #include <linux/seq_file.h>
+#include <linux/interrupt.h>
+#include <linux/gpio.h>
 
 #define DEV_NAME "gasdev0.0"
 
@@ -20,6 +22,9 @@
 #endif
 
 #define SPI_BUS_NUM 0
+
+#define MQ9_DIGITAL_OUT 22
+#define LED 17
 
 static struct spi_device *etx_spi_device;
 
@@ -34,6 +39,8 @@ struct spi_board_info etx_spi_device_info =
 
 static dev_t dev_num;
 static struct cdev *cd_cdev;
+
+static int irq_num;
 
 static ssize_t gas_read(struct file *file, char * data, size_t size, loff_t * offset) {
     /* int spi_write_then_read(struct spi_device * spi, const void * txbuf, unsigned n_tx, void * rxbuf, unsigned n_rx)
@@ -82,6 +89,12 @@ struct file_operations gas_fops = {
     .release = gas_relase,
 };
 
+static irqreturn_t mq9_irq_isr(int irq, void* dev_id) {
+    DEBUG_MSG("GAS DETECT");
+    gpio_set_value(LED, 1);
+    return IRQ_HANDLED;
+}
+
 static int __init gas_init(void) {
     int ret;
     struct  spi_master *master;
@@ -110,6 +123,15 @@ static int __init gas_init(void) {
         return -ENODEV;
     }
 
+    gpio_request_one(MQ9_DIGITAL_OUT, GPIOF_IN, "MQ9_DIGITAL_OUT");
+    gpio_request_one(LED, GPIOF_OUT_INIT_LOW, "LED");
+
+    irq_num = gpio_to_irq(MQ9_DIGITAL_OUT);
+    ret = request_irq(irq_num, mq9_irq_isr, IRQF_TRIGGER_FALLING, "mq9_irq_isr", NULL);
+    if (ret) {
+        free_irq(irq_num, NULL);
+    }
+
     alloc_chrdev_region(&dev_num, 0, 1, DEV_NAME);
     cd_cdev = cdev_alloc();
     cdev_init(cd_cdev, &gas_fops);
@@ -126,6 +148,10 @@ static void __exit gas_exit(void) {
     cdev_del(cd_cdev);
     unregister_chrdev_region(dev_num, 1);
     spi_unregister_device( etx_spi_device );    // Unregister the SPI slave
+    gpio_set_value(LED, 0);
+    free_irq(irq_num, NULL);
+    gpio_free(LED);
+    gpio_free(MQ9_DIGITAL_OUT);
 }
 
 MODULE_LICENSE("Dual BSD/GPL");
