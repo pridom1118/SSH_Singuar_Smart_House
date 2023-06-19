@@ -1,4 +1,4 @@
-obj-m := gas_mod.o
+obj-m := alert_mod.o
 
 KERNELDIR := ~/linux-rpi/
 ARM := ARCH=arm CROSS_COMPILE=/usr/bin/arm-linux-gnueabi-
