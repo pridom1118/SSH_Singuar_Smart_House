@@ -53,13 +53,13 @@ static long alert_mod_ioctl(struct file *file, unsigned int cmd, unsigned long a
             DEBUG_MSG("play speaker\n");
             if(my_kthread) {
                 kthread_stop(my_kthread);
-                printk("simple_kthread: my kernel thread STOP \n");
+                DEBUG_MSG("kernel thread STOP \n");
             }
             spin_lock(&my_lock);
             my_kthread = kthread_create(play, NULL, "PLAY ALERT SOUND");
             if(IS_ERR(my_kthread)) {
                 my_kthread = NULL;
-                printk("simple_kthread: my kernel thread ERROR \n");
+                DEBUG_MSG("kernel thread ERROR \n");
             }
             spin_unlock(&my_lock);
             wake_up_process(my_kthread);
