@@ -133,5 +133,7 @@ static void __exit spi_dev_exit(void) {
 }
 
 MODULE_LICENSE("Dual BSD/GPL");
+MODULE_AUTHOR("Peter Park <holy.people@kakao.com>");
+MODULE_DESCRIPTION("MCP3208 SPI Device Driver");
 module_init(spi_dev_init);
 module_exit(spi_dev_exit);
