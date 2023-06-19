@@ -46,7 +46,7 @@ static ssize_t mcp3208_spi_read(struct file *file, char * data, size_t size, lof
     };
 
     DEBUG_MSG("data: %d \n", data[0]);
-    if ( data[0] < 0 || data[0] > 7 )) { /* mcp3208 has only 0-7 channel */
+    if ( data[0] < 0 || data[0] > 7 ) { /* mcp3208 has only 0-7 channel */
         return -EINVAL; /* Invalid argument */
     }
     channel = *data;
