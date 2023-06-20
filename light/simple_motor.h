@@ -1,0 +1,9 @@
+/* A header for motor */
+
+#define MIOCTL_START_NUM 0x80
+#define MIOCTL_NUM1 MIOCTL_START_NUM+1
+#define MIOCTL_NUM2 MIOCTL_START_NUM+2
+
+#define MIOCTL_NUM 'z'
+#define MOTOR_ROTATE_FORWARD _IOWR(MIOCTL_NUM, MIOCTL_NUM1, unsigned long)
+#define MOTOR_ROTATE_BACKWARD _IOWR(MIOCTL_NUM, MIOCTL_NUM2, unsigned long)
