@@ -8,7 +8,7 @@
 
 #include "simple_door.h"
 
-int door_fd;
+int door_fd, alert_fd;
 
 time_t timer;
 struct tm *t;
@@ -33,13 +33,23 @@ int main(int argc, char *argv[]) {
 		return -1;
 	}
 
+	if((alert_fd = open("/dev/alert_dev", O_RDWR)) < 0) {
+		perror("alert dev open error\n");
+		return -1;
+	}
+
 	timer = time(NULL);
 
 	/* Wait for the door to be opened */
 	while(1) {
 		ioctl(door_fd, WAIT_OPEN, NULL);
 		print_current_time();
+		ioctl(alert_fd, PLAY, NULL);
+		sleep(1);
+		ioctl(alert_fd, STOP, NULL);
 	}
+
 	close(door_fd);
+	close(alert_fd);
 	return 0;
 }
