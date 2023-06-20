@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/ioctl.h>
+
+#define MCP_DATA_TRANSFER _IOWR('x', 0x80, unsigned long*)
 
 int main(int argc, char* argv[]) {
     int spi_fd, ret;
@@ -17,7 +20,7 @@ int main(int argc, char* argv[]) {
         return -1;
     }
     data[0] = atoi(argv[1]);
-    ret = read(spi_fd, data, 11);
+    ret = ioctl(spi_fd, MCP_DATA_TRANSFER, atoi(argv[1]));
     printf("sensor = %d, length = %d\n", atoi(data), ret);
     return 0;
 }

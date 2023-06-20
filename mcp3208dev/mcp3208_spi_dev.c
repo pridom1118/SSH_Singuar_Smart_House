@@ -20,6 +20,7 @@
 #endif
 
 #define SPI_BUS_NUM 0
+#define MCP_DATA_TRANSFER _IOWR('x', 0x80, unsigned long*)
 
 static struct spi_device *etx_spi_device;
 
@@ -35,8 +36,8 @@ struct spi_board_info etx_spi_device_info =
 static dev_t dev_num;
 static struct cdev *cd_cdev;
 
-static ssize_t mcp3208_spi_read(struct file *file, char * data, size_t size, loff_t * offset) {
-    u8 tbuf[3], rbuf[3], channel = 0;
+static int mcp3208_read_value(int channel) {
+    u8 tbuf[3], rbuf[3];
     int value = 0;
     struct spi_transfer  tr = 
     {
@@ -44,12 +45,10 @@ static ssize_t mcp3208_spi_read(struct file *file, char * data, size_t size, lof
       .rx_buf = rbuf,
       .len    = 3,
     };
-
-    DEBUG_MSG("data: %d \n", data[0]);
-    if ( data[0] < 0 || data[0] > 7 ) { /* mcp3208 has only 0-7 channel */
-        return -EINVAL; /* Invalid argument */
+    
+    if (channel < 0 || channel > 7) {
+        return -EINVAL;
     }
-    channel = *data;
 
     tbuf[0] = 0x06 | ((channel & 0x07) >> 2);
     tbuf[1] = ((channel & 0x07) << 6);
@@ -62,11 +61,23 @@ static ssize_t mcp3208_spi_read(struct file *file, char * data, size_t size, lof
     rbuf[1] = 0x0F & rbuf[1];
     value = (rbuf[1] << 8) | rbuf[2];
 
-    sprintf(data, "%d", value);
     DEBUG_MSG("chenel = %d | sensor = %d", channel, value);
     DEBUG_MSG("tbuf : %02x %02x %02x\n", tbuf[0], tbuf[1], tbuf[2]);
     DEBUG_MSG("rbuf : %02x %02x %02x\n", rbuf[0], rbuf[1], rbuf[2]);
 
+    return value;
+}
+
+static ssize_t mcp3208_spi_read(struct file *file, char * data, size_t size, loff_t * offset) {
+    int channel, value;
+    DEBUG_MSG("data: %d \n", data[0]);
+    if ( data[0] < 0 || data[0] > 7 ) { /* mcp3208 has only 0-7 channel */
+        return -EINVAL; /* Invalid argument */
+    }
+    channel = *data;
+    value = mcp3208_read_value(channel);
+    sprintf(data, "%d", value);
+    
     return strlen(data);
 }
 
@@ -80,7 +91,16 @@ static int mcp3208_spi_release(struct inode *inode, struct file *file) {
     return 0;
 }
 
+static long mcp3208_spi_ioctl(struct file *file, unsigned int cmd, unsigned long arg) {
+    switch(cmd) {
+        case MCP_DATA_TRANSFER:
+            return mcp3208_read_value(arg);
+    }
+    return 0;
+}
+
 struct file_operations spi_fops = {
+    .unlocked_ioctl = mcp3208_spi_ioctl,
     .open = mcp3208_spi_open,
     .read = mcp3208_spi_read,
     .release = mcp3208_spi_release,
